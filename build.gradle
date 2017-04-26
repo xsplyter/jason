@@ -408,7 +408,7 @@ task doc(dependsOn: [ 'jjdoc', 'javadoc', 'renderAsciiDocs']) << {
 }
 
 task renderAsciiDocs(type: Exec) {
-    commandLine 'find', '.', '-name', '*.adoc', '-exec', 'asciidoctor', '{}', ';'
+    commandLine 'find', '.', '-name', '*.adoc', '-exec', 'asciidoctor', '-r', project.buildDir.absolutePath+'/../src/main/resources/pygments_init.rb', '{}', ';'
 }
 
 task fixTab {
@@ -452,6 +452,10 @@ task copyRel << {
     copy {
         from 'demos'
         into 'build/jason-'+project.version+'/demos'
+    }
+    copy {
+        from 'src'
+        into 'build/jason-'+project.version+'/src'
     }
 }
 

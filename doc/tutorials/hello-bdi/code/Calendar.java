@@ -8,7 +8,6 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JSlider;
 import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 import cartago.INTERNAL_OPERATION;
 import cartago.ObsProperty;
@@ -16,15 +15,14 @@ import cartago.tools.GUIArtifact;
 
 public class Calendar extends GUIArtifact {
     Term[] days = {
-                ASSyntax.createAtom("sunday"),
-                ASSyntax.createAtom("monday"),
-                ASSyntax.createAtom("tuesday"),
-                ASSyntax.createAtom("wednesday"),
-                ASSyntax.createAtom("thursday"),
-                ASSyntax.createAtom("friday"),
-                ASSyntax.createAtom("saturday")
-            };
-
+        ASSyntax.createAtom("sunday"),
+        ASSyntax.createAtom("monday"),
+        ASSyntax.createAtom("tuesday"),
+        ASSyntax.createAtom("wednesday"),
+        ASSyntax.createAtom("thursday"),
+        ASSyntax.createAtom("friday"),
+        ASSyntax.createAtom("saturday")
+    };
 
     public void setup() {
         defineObsProperty("today", days[0]);
@@ -57,19 +55,16 @@ public class Calendar extends GUIArtifact {
         f.setVisible(true);
     }
 
-    /*
-    protected void linkChangeEventToOp(JSlider source, String opName){
-        insertEventToOp(source,"stateChanged",opName);
-        source.addChangeListener((ChangeListener) getEventListenerInstance());
-    }
-    */
-
-    @INTERNAL_OPERATION void updateDay(ChangeEvent ev) {
-        try {
-            ObsProperty prop = getObsProperty("today");
-            prop.updateValue(days[ (int)s.getValue() ]);
-        } catch (Exception e2) {
-            e2.printStackTrace();
+    @INTERNAL_OPERATION
+    void updateDay(ChangeEvent ev) {
+        JSlider source = (JSlider) ev.getSource();
+        if (!source.getValueIsAdjusting()) {
+            try {
+                ObsProperty prop = getObsProperty("today");
+                prop.updateValue(days[(int) s.getValue()]);
+            } catch (Exception e2) {
+                e2.printStackTrace();
+            }
         }
     }
 }
