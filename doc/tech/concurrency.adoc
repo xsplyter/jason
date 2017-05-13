@@ -123,12 +123,14 @@ If some intention cannot interleave its execution with another, the *atomic* ann
 
 If an atomic plan runs, all its subgoals will be also atomic.
 
+=== Fine grained conflict specification
+
 // add new support with conflict
 If the conflicts happen only among specific plans, Jason provides a series of ways to define this kind of conflict, by means of the *conflict* annotation.
 
 First of all, it is important to say that the conflict relation is symmetric, which means that if one specifies that plan A conflicts with plan B, then plan B will also conflict with plan A.
 
-=== Conflict events
+==== Conflict events
 
 A plan can conflict with all other plans that handle the same event. The conflict is specified by informing with which triggers a plan is conflicting. 
 
@@ -153,7 +155,7 @@ If a plan conflict with plans that have different triggers, the list of all trig
 +!g2 ...
 ----
 
-=== Conflict plan labels
+==== Conflict plan labels
 
 If the plan is conflicting just with a certain plan, Jason allows to specify the conflict directly with the label of that specific plan.
 
@@ -164,7 +166,7 @@ If the plan is conflicting just with a certain plan, Jason allows to specify the
       +vl(T+X). // updates its value
 ----
 
-=== Conflict self
+==== Conflict self
 
 The keyword *self* can be used to specify a conflict of a plan with itself. It means that two instances of the same plan cannot be executed concurrently.
 
@@ -175,7 +177,7 @@ The keyword *self* can be used to specify a conflict of a plan with itself. It m
       +vl(T+X). // updates its value
 ----
 
-=== Conflict _
+==== Conflict _
 
 The keyword *_* can be used to specify a conflict of a plan with all other plans (this is the same as specifying a plan as atomic).
 
@@ -186,7 +188,7 @@ The keyword *_* can be used to specify a conflict of a plan with all other plans
       +vl(T+X). // updates its value
 ----
 
-=== Different kind of conflicts together
+==== Different kind of conflicts together
 
 A list of conflicts can be specified combining the different ways to specify conflicts.
 
