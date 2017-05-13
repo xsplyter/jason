@@ -110,6 +110,8 @@ When a *.succeed_goal(gb)* is executed:
 
 == Conflicting plans
 
+=== Conflict atomic
+
 If some intention cannot interleave its execution with another, the *atomic* annotation can be used in the label of plans:
 
 ----
@@ -122,7 +124,78 @@ If some intention cannot interleave its execution with another, the *atomic* ann
 If an atomic plan runs, all its subgoals will be also atomic.
 
 // add new support with conflict
+If the conflicts happen only among specific plans, Jason provides a series of ways to define this kind of conflict, by means of the *conflict* annotation.
 
+First of all, it is important to say that the conflict relation is symmetric, which means that if one specifies that plan A conflicts with plan B, then plan B will also conflict with plan A.
+
+=== Conflict events
+
+A plan can conflict with all other plans that handle the same event. The conflict is specified by informing with which triggers a plan is conflicting. 
+
+----
+@alabel[conflict("+!g1(_)")] // this plan conflicts with all plans that handle the adoption of the goal !g1(_)
++!update(X)
+   <- -vl(T);   // gets the current value of belief vl
+      +vl(T+X). // updates its value
+      
++!g1(T) ...
+----
+
+If a plan conflict with plans that have different triggers, the list of all triggers can be informed.
+
+----
+@alabel[conflict(["+!g1(_)", "+!g2"])] // this plan conflicts with all plans that handle the adoption of the goal !g1(_) or the adoption of goal !g2
++!update(X)
+   <- -vl(T);   // gets the current value of belief vl
+      +vl(T+X). // updates its value
+      
++!g1(T) ...
++!g2 ...
+----
+
+=== Conflict plan labels
+
+If the plan is conflicting just with a certain plan, Jason allows to specify the conflict directly with the label of that specific plan.
+
+----
+@alabel[conflict("@updateDataBase")] // this plan conflicts only with the plan with label updateDataBase
++!update(X)
+   <- -vl(T);   // gets the current value of belief vl
+      +vl(T+X). // updates its value
+----
+
+=== Conflict self
+
+The keyword *self* can be used to specify a conflict of a plan with itself. It means that two instances of the same plan cannot be executed concurrently.
+
+----
+@alabel[conflict(self)] // just one instance of this plan can be in execution
++!update(X)
+   <- -vl(T);   // gets the current value of belief vl
+      +vl(T+X). // updates its value
+----
+
+=== Conflict _
+
+The keyword *_* can be used to specify a conflict of a plan with all other plans (this is the same as specifying a plan as atomic).
+
+----
+@alabel[conflict(_)] // this plan conflicts with all other plans, and once this plan is in execution, no other plans will be in execution concurrently with it
++!update(X)
+   <- -vl(T);   // gets the current value of belief vl
+      +vl(T+X). // updates its value
+----
+
+=== Different kind of conflicts together
+
+A list of conflicts can be specified combining the different ways to specify conflicts.
+
+----
+@alabel[conflict(["+!g1(_)", "+!g2", "@updateDataBase", self])] // this plan conflicts with all plans that handle the adoption of the goal !g1(_) or the adoption of goal !g2, with the plan labelled as updateDataBase, and with itself
++!update(X)
+   <- -vl(T);   // gets the current value of belief vl
+      +vl(T+X). // updates its value
+----
 
 == Internal actions
 
