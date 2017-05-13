@@ -36,6 +36,7 @@ public class Intention implements Serializable, Comparable<Intention>, Iterable<
     private int     id;
     private int     atomicCount    = 0; // number of atomic intended means in the intention
     private boolean isSuspended = false;
+    private IntendedMeans suspendedBy = null;
 
     private Deque<IntendedMeans> intendedMeans = new ArrayDeque<IntendedMeans>();
 
@@ -52,6 +53,7 @@ public class Intention implements Serializable, Comparable<Intention>, Iterable<
     }
 
     public void push(IntendedMeans im) {
+    	im.setIntention(this);
         intendedMeans.push(im);
         if (im.isAtomic())
             atomicCount++;
@@ -104,6 +106,17 @@ public class Intention implements Serializable, Comparable<Intention>, Iterable<
 
     public void setSuspended(boolean b) {
         isSuspended = b;
+        if (!isSuspended) {
+        	setSuspendedBy(null);
+        }
+    }
+    
+    public void setSuspendedBy(IntendedMeans suspendedBy) {
+        this.suspendedBy = suspendedBy;
+    }    
+    
+    public IntendedMeans getSuspendedBy() {
+    	return suspendedBy;
     }
 
     public boolean isSuspended() {

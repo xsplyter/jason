@@ -6,7 +6,7 @@ import jason.asSyntax.parser.as2j;
 
 public abstract class DefaultDirective implements Directive {
 
-    @Override
+
     public boolean isSingleton() {
         return true;
     }

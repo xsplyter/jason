@@ -21,19 +21,16 @@ public class NameSpace implements Directive {
 
     private Map<Atom,Atom> localNSs = new HashMap<Atom,Atom>();
 
-    @Override
     public boolean isSingleton() {
         return false;
     }
 
-    @Override
     public Agent process(Pred directive, Agent outerContent, Agent innerContent) {
         return innerContent;
     }
 
     Stack<Atom> oldNS = new Stack<Atom>();
 
-    @Override
     public void begin(Pred directive, as2j parser) {
         if (! directive.getTerm(0).isAtom()) {
             logger.log(Level.SEVERE, "The first parameter of the directive namespace should be an atom and not "+directive.getTerm(0));
@@ -64,7 +61,6 @@ public class NameSpace implements Directive {
         parser.setNS(ns);
     }
 
-    @Override
     public void end(Pred directive, as2j parser) {
         if (!oldNS.isEmpty())
             parser.setNS(oldNS.pop());

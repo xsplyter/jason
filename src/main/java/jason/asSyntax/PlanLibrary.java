@@ -12,6 +12,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import jason.JasonException;
+import jason.asSyntax.Conflict.ConflictType;
 import jason.asSyntax.Trigger.TEOperator;
 import jason.asSyntax.Trigger.TEType;
 import jason.asSyntax.parser.ParseException;
@@ -43,6 +44,7 @@ public class PlanLibrary implements Iterable<Plan> {
     private static AtomicInteger lastPlanLabel = new AtomicInteger(0);
 
     private boolean hasUserKqmlReceived = false;
+    private boolean firstPassConflict = false;
 
     //private Logger logger = Logger.getLogger(PlanLibrary.class.getName());
 
@@ -51,6 +53,119 @@ public class PlanLibrary implements Iterable<Plan> {
     public Object getLock() {
         return lockPL;
     }
+    
+    /**
+     * Map all conflicts to plan labels... Done just once.
+     */
+    public void transformConflicts() {
+    	for (Plan p : plans) {
+    		transformConflicts(p);
+    	}
+    	firstPassConflict = true;
+    }
+    
+    /**
+     * Get the conflict set of p and map all conflicts to plan labels
+     * @param p
+     */
+    public void transformConflicts(Plan p) {
+		for (Conflict c : p.getConflicts()) {
+			if (c.getType() == ConflictType.PLAN_NAME) {
+				p.addConflictingPlan(c.getConflict());
+				if (get(c.getConflict()) != null) {
+					get(c.getConflict()).addConflictingPlan(p.getLabel().getFunctor());
+				}
+			} else if (c.getType() == ConflictType.PLAN_TRIGGER) {
+				Trigger t = Trigger.parseTrigger(c.getConflict());
+				
+				List<Plan> rPlans = getCandidatePlans(t);
+				
+				if (rPlans != null) {
+    				for (Plan rp : rPlans) {
+    					//System.out.println("RP# " + rp.getLabel().getFunctor());
+    					p.addConflictingPlan(rp.getLabel().getFunctor());
+    					rp.addConflictingPlan(p.getLabel().getFunctor());
+    				}
+				}
+			} else if (c.getType() == ConflictType.ATOMIC) { //If the conflict is specified as atomic, add all plans
+				for (Plan rp : getPlans()) {
+					//System.out.println("### ADD ATOMIC CONFLICT " + p.getLabel().getFunctor() + " <> " + rp.getLabel().getFunctor());
+					p.addConflictingPlan(rp.getLabel().getFunctor());
+					if (!rp.getLabel().getFunctor().equals(p.getLabel().getFunctor())) {
+						rp.addConflictingPlan(p.getLabel().getFunctor());	
+					}
+				}
+			} else { //It's an id of conflict
+				if (c.getConflict().equals("self")) { //conflicts with itself
+					//System.out.println("### ADD SELF CONFLICT " + p.getLabel().getFunctor() + " <> " + p.getLabel().getFunctor());
+					p.addConflictingPlan(p.getLabel().getFunctor());
+				} else {
+					for (Plan rp : plans) {
+						if (!rp.getLabel().getFunctor().equals(p.getLabel().getFunctor()) && rp.containsConflict(c)) {
+	    					p.addConflictingPlan(rp.getLabel().getFunctor());
+	    					rp.addConflictingPlan(p.getLabel().getFunctor());
+	    					
+	    					//System.out.println(p.getLabel().getFunctor() + " RP# " + rp.getLabel().getFunctor());
+						}
+					}
+				}
+			}
+		}
+    }
+    
+    /**
+     * When including a new plan in the plan library it is necessary to check all plans to verify which ones can conflict with p
+     * It is necessary due to symmetry of conflicts
+     * @param p
+     */
+    public void searchTransformConflictsWith(Plan pNew) {
+    	transformConflicts(pNew);
+    	
+    	//System.out.println("Adding new plan and conflicts " + pNew.getLabel().getFunctor() + " ## " + pNew.getConflicts().size());
+    	
+    	for (Plan p : getPlans()) {
+    		if (p.getLabel().getFunctor().equals(pNew.getLabel().getFunctor())) continue;
+    		
+    		for (Conflict c : p.getConflicts()) {
+    			if (c.getType() == ConflictType.PLAN_NAME) {
+    				if (c.getConflict().equals(pNew.getLabel().getFunctor())) {
+	    				p.addConflictingPlan(c.getConflict());
+	    				if (get(c.getConflict()) != null) {
+	    					get(c.getConflict()).addConflictingPlan(p.getLabel().getFunctor());
+	    					
+	    					//System.out.println("## Adding new plan and conflicts " + pNew.getLabel().getFunctor() + " with " + p.getLabel().getFunctor());
+	    				}
+    				}
+    			} else if (c.getType() == ConflictType.PLAN_TRIGGER) {
+    				Trigger t = Trigger.parseTrigger(c.getConflict());
+    				
+    				List<Plan> rPlans = getCandidatePlans(t);
+    				
+    				if (rPlans != null) {
+        				for (Plan rp : rPlans) {
+        					//If rp is the new plan
+        					if (rp.getLabel().getFunctor().equals(pNew.getLabel().getFunctor())) {
+        						//System.out.println("RP# " + rp.getLabel().getFunctor());
+        						p.addConflictingPlan(rp.getLabel().getFunctor());
+        						rp.addConflictingPlan(p.getLabel().getFunctor());
+        						
+        						//System.out.println("### Adding new plan and conflicts " + pNew.getLabel().getFunctor() + " with " + p.getLabel().getFunctor());
+        					}
+        				}
+    				}
+    			} else if (c.getType() == ConflictType.ATOMIC) { //If the plan is atomic, add the new plan in the conflict list
+    				if (!p.getLabel().getFunctor().equals(pNew.getLabel().getFunctor())) { //Do not add itself again, because it was added before
+						p.addConflictingPlan(pNew.getLabel().getFunctor());
+						pNew.addConflictingPlan(p.getLabel().getFunctor());
+						
+						//System.out.println("### Adding new plan and conflicts (ATOMIC) " + pNew.getLabel().getFunctor() + " <> " + p.getLabel().getFunctor());
+    				}
+    			}
+    		}
+    	}
+    }
+    
+
 
     /**
      *  Add a new plan written as a String. The source
@@ -207,6 +322,10 @@ public class PlanLibrary implements Iterable<Plan> {
                 plans.add(0,p);
             else
                 plans.add(p);
+            
+            if (firstPassConflict) {
+            	searchTransformConflictsWith(p);
+            }
         }
     }
 

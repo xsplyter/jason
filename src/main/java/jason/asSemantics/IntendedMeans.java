@@ -8,6 +8,8 @@ import jason.asSyntax.Term;
 import jason.asSyntax.Trigger;
 
 import java.io.Serializable;
+import java.util.LinkedList;
+import java.util.Queue;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -22,6 +24,11 @@ public class IntendedMeans implements Serializable {
     private   Trigger  trigger; // the trigger which created this IM
 
     protected Unifier  renamedVars = null;
+    
+    //Suspended intentions
+    private Queue<Intention> si = new LinkedList<Intention>();
+    //Intention from the IM
+    private Intention i = null;
 
     public IntendedMeans(Option opt, Trigger te) {
         plan     = opt.getPlan();
@@ -33,6 +40,26 @@ public class IntendedMeans implements Serializable {
         } else {
             trigger = te.capply(unif);
         }
+    }
+    
+    public void setIntention(Intention i) {
+    	this.i = i;
+    }
+    
+    public Intention getIntention() {
+    	return i;
+    }
+    
+    public void addSI(Intention i) {
+    	si.offer(i);
+    }
+    
+    public void removeSI(Intention i) {
+    	si.remove(i);
+    }
+    
+    public Queue<Intention> getSI() {
+    	return si;
     }
 
     // used by clone

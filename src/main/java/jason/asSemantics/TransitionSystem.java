@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -46,6 +47,7 @@ import jason.runtime.Settings;
 import jason.stdlib.add_nested_source;
 import jason.stdlib.desire;
 import jason.stdlib.fail_goal;
+import jason.stdlib.suspend;
 import jason.util.Config;
 
 
@@ -499,47 +501,105 @@ public class TransitionSystem {
             confP.stepDeliberate = State.ProcAct;
         }
     }
+    
+    /**
+     * Suspend an intention i due to a conflict with ci
+     * @param i
+     * @param ci
+     */
+    public void suspendIntention(Intention i, IntendedMeans ci) {
+        if (!i.isSuspended()) {
+        	C.removeIntention(i);
+        	C.addPendingIntention(suspend.SUSPENDED_INT+i.getId(), i);
+        	i.setSuspended(true);
+        }
+        ci.addSI(i);
+        i.setSuspendedBy(ci);
+    }
+    
+    /**
+     * Suspend an intention i due to a conflict with ci
+     * @param i
+     * @param ci
+     */
+    public void resumeIntention(Intention i, IntendedMeans ci) {
+    	if (i.isSuspended()) {
+	        i.setSuspended(false);
+	        C.resumeIntention(i);
+	        C.removePendingIntention(suspend.SUSPENDED_INT+i.getId());
+	        ci.removeSI(i);
+	        //if the intention was suspended due to conflict, then add on instances plan
+	        confP.C.addInstancePlan(i.peek().getPlan().getLabel().getFunctor(), i.peek());
+    	}
+    }
+    
+    /**
+     * Return if a plan p tested by intention i is conflicting with some already active intention
+     * @param i
+     * @param p
+     * @return
+     */
+    public IntendedMeans conflict(Intention i, Plan p) {
+    	for (String c : p.getConflictingPlans()) {
+    		Set<IntendedMeans> instancesC = confP.C.getInstancesPlan(c);
+    		if (instancesC == null) continue;
+    		
+    		for (IntendedMeans im : instancesC) {
+    			//If the intention that instantiated plan c is different than i
+    			//System.out.println(im.getIntention() + " AND " + i);
+    			if (!im.getIntention().equals(i)) return im;
+    		}
+    	}
+    	return null;
+    }
 
+    
     /**
      * This step is new in Jason 1.1 and replaces the steps RelPl->ApplPl->SelAppl when the user
-     * does not customise selectOption. This version does not create the RP and AP lists and thus
+     * does not customise selectOption. This version does not create the RP and AP lists and thus 
      * optimise the reasoning cycle. It searches for the first option and automatically selects it.
-     *
+     * 
      * @since 1.1
      */
     private void applyFindOp() throws JasonException {
-        confP.stepDeliberate = State.AddIM; // default next step
-
+        confP.stepDeliberate = State.SelAppl; // default next step
+        
         // get all relevant plans for the selected event
         //Trigger te = (Trigger) conf.C.SE.trigger.clone();
         List<Plan> candidateRPs = conf.ag.pl.getCandidatePlans(conf.C.SE.trigger);
         if (candidateRPs != null) {
+        	C.lockApPlanSense.readLock().lock();
+        	List<Option> appPlans = new LinkedList<Option>();
             for (Plan pl : candidateRPs) {
                 Unifier relUn = pl.isRelevant(conf.C.SE.trigger);
                 if (relUn != null) { // is relevant
                     LogicalFormula context = pl.getContext();
                     if (context == null) { // context is true
-                        confP.C.SO = new Option(pl, relUn);
-                        return;
+                    	appPlans.add(new Option(pl, relUn));
                     } else {
                         Iterator<Unifier> r = context.logicalConsequence(ag, relUn);
                         if (r != null && r.hasNext()) {
-                            confP.C.SO = new Option(pl, r.next());
-                            return;
+                        	appPlans.add(new Option(pl, r.next()));
                         }
-                    }
+                    } 
                 }
             }
-            applyRelApplPlRule2("applicable");
+            C.lockApPlanSense.readLock().unlock();
+            if (appPlans.isEmpty()) {
+            	applyRelApplPlRule2("applicable");
+            } else {
+            	confP.C.AP = appPlans;
+            }
         } else {
             // problem: no plan
-            applyRelApplPlRule2("relevant");
-        }
+            applyRelApplPlRule2("relevant");   
+        }        
     }
-
+    
     private void applyAddIM() throws JasonException {
         // create a new intended means
         IntendedMeans im = new IntendedMeans(conf.C.SO, conf.C.SE.getTrigger());
+        IntendedMeans imFree = null;
 
         // Rule ExtEv
         if (conf.C.SE.intention == Intention.EmptyInt) {
@@ -554,9 +614,22 @@ public class TransitionSystem {
                 IntendedMeans top = confP.C.SE.intention.peek(); // top = the IM that will be removed from the intention due to TRO
                 if (top != null && top.getTrigger().isGoal() && im.getTrigger().isGoal() && // are both goal
                         top.getCurrentStep().getBodyNext() == null && // the plan below is finished
-                        top.getTrigger().getPredicateIndicator().equals( im.getTrigger().getPredicateIndicator()) // goals are equals
+                        top.getPlan().getLabel().getFunctor().equals(im.getPlan().getLabel().getFunctor())
+                        /*Commented MAICON 
+                         * It's necessary to test the label because of conflict with plan labels, 
+                         * otherwise a plan p1 finishes and there is no way to discover that p1 is active in "background", if the recursion calls p2
+                         * The backtracking needs to be stored somewhere...
+                         * 
+                         * Ex:
+                         * @p2
+                         * +!count(0) <- "do something".
+                         * @p1[conflict(_)] 
+                         * +!count(N): N > 0 <- !count(N-1).
+                         * */ 
+                        //top.getTrigger().getPredicateIndicator().equals(im.getTrigger().getPredicateIndicator()) // goals are equals
                    ) {
-                    confP.C.SE.intention.pop(); // remove the top IM
+
+                    imFree = confP.C.SE.intention.pop(); // remove the top IM
 
                     IntendedMeans imBase = confP.C.SE.intention.peek(); // base = where the new IM will be place on top of
                     if (imBase != null) {
@@ -588,6 +661,20 @@ public class TransitionSystem {
             confP.C.SE.intention.push(im);
             confP.C.addIntention(confP.C.SE.intention);
         }
+        
+        //if there is no conflict add instance plan... if conflict suspend intention
+        IntendedMeans imC = conflict(im.getIntention(), im.getPlan());
+        if (imC == null) {
+        	//System.out.println("No conflict detected for " + im.getPlan().getLabel().getFunctor() + " # " + im.getIntention().getId());
+        	confP.C.addInstancePlan(im.getPlan().getLabel().getFunctor(), im);
+        } else {
+        	//System.out.println("Conflict detected for " + im.getPlan().getLabel().getFunctor() + " # " + im.getIntention().getId() + " with " + imC.getIntention().getId());
+        	suspendIntention(im.getIntention(), imC);
+        }
+        if (imFree != null) {
+        	terminateIMTRO(imFree); // handle the conflicts due to TRO
+        }
+        
         confP.stepDeliberate = State.ProcAct;
     }
 
@@ -710,7 +797,7 @@ public class TransitionSystem {
         Literal body = null;
         if (bTerm instanceof Literal)
             body = (Literal)bTerm;
-
+        
         switch (h.getBodyType()) {
 
         case none:
@@ -944,9 +1031,78 @@ public class TransitionSystem {
         }
         return body;
     }
+    
+    /**
+     * Free all conflicting intentions with i
+     * @param i
+     */
+    public void terminateIntention(Intention i) {
+    	if (i.getSuspendedBy() != null)
+    		i.getSuspendedBy().removeSI(i);
+    	while (!i.isFinished()) {
+    		IntendedMeans im = i.pop();
+    		terminateIM(im);
+    	}
+    }
+    
+    /**
+     * Free all conflicting intentions with im
+     * @param im
+     */
+    public void terminateIM(IntendedMeans im) {
+        //Remove the IM from the instances of the plan
+        confP.C.removeInstancePlan(im.getPlan().getLabel().getFunctor(), im);
+        Intention i = im.getSI().poll();
+        
+        while (i != null) {
+        	//Test if it can resume intention i, if not, add on the SI of other conflict intention
+        	IntendedMeans imC = conflict(i, i.peek().getPlan());
+        	if (imC == null) { //Intention i does not conflict with other intention
+        		resumeIntention(i, im);
+        	} else {
+        		im.removeSI(i);
+        		suspendIntention(i, imC);
+        	}
+        	
+        	i = im.getSI().poll();
+        }
+        /*
+         * Even when plan is atomic, it needs to wait other plans to finish to start its execution
+         * Atomic is mapped to conflict with all other plans
+         * *PS: In original Jason, the atomic plan starts to execute even if others are in execution.*
+         */
+    }
+    
+    /**
+     * Free all conflicting intentions with im 
+     * Use it when tail recursion optimisation is on 
+     * %TODO Remove if it is equals.... it's temporary
+     * @param im
+     */
+    public void terminateIMTRO(IntendedMeans im) {
+        //Remove the IM from the instances of the plan
+        confP.C.removeInstancePlan(im.getPlan().getLabel().getFunctor(), im);
+        Intention i = im.getSI().poll();
+        
+        while (i != null) {
+        	//Test if it can resume intention i, if not, add on the SI of other conflict intention
+        	IntendedMeans imC = conflict(i, i.peek().getPlan());
+        	if (imC == null) { //Intention i does not conflict with other intention
+        		resumeIntention(i, im);
+        	} else {
+        		im.removeSI(i);
+        		suspendIntention(i, imC);
+        	}
+        	
+        	i = im.getSI().poll();
+        }
+    }
 
     public void applyClrInt(Intention i) throws JasonException {
         while (true) { // quit the method by return
+        	
+        	//Remove from the instances of a plan... It is possible to have more IM in the same intention that executes the same plan, only remove if there is no other IM in execution.
+        	
             // Rule ClrInt
             if (i == null)
                 return;
@@ -977,6 +1133,8 @@ public class TransitionSystem {
                     gl.goalFinished(topTrigger, FinishStates.achieved);
                 }
             }
+            
+            terminateIM(im);
 
             // if has finished a failure handling IM ...
             if (im.getTrigger().isGoal() && !im.getTrigger().isAddition() && !i.isFinished()) {
@@ -994,11 +1152,15 @@ public class TransitionSystem {
                         || !(im.unif.unifies(im.getCurrentStep().getBodyTerm(), topLiteral) && im.getCurrentStep().getBodyType() == BodyType.achieve)
                         || im.getCurrentStep().getBodyTerm() instanceof VarTerm) {
                     im = i.pop(); // +!c above
+                    
+                    terminateIM(im);
                 }
                 while (!i.isFinished() &&
                         !(im.unif.unifies(im.getTrigger().getLiteral(), topLiteral) && im.getTrigger().isGoal()) &&
                         !(im.unif.unifies(im.getCurrentStep().getBodyTerm(), topLiteral) && im.getCurrentStep().getBodyType() == BodyType.achieve)) {
                     im = i.pop();
+                    
+                    terminateIM(im);
                 }
             }
 
@@ -1067,7 +1229,8 @@ public class TransitionSystem {
     }
 
     public List<Option> applicablePlans(List<Option> rp) throws JasonException {
-        synchronized (C.syncApPlanSense) {
+    	C.lockApPlanSense.readLock().lock();
+    	//synchronized (C.syncApPlanSense) {
             List<Option> ap = null;
             if (rp != null) {
                 //ap = new ApplPlanTimeOut().get(rp);
@@ -1097,8 +1260,9 @@ public class TransitionSystem {
                     }
                 }
             }
+            C.lockApPlanSense.readLock().unlock();
             return ap;
-        }
+        //}
     }
 
     public void updateEvents(List<Literal>[] result, Intention focus) {
@@ -1422,9 +1586,11 @@ public class TransitionSystem {
 
             if (nrcslbr >= setts.nrcbp()) {
                 nrcslbr = 0;
-                synchronized (C.syncApPlanSense) {
-                    ag.buf(getUserAgArch().perceive());
-                }
+                C.lockApPlanSense.writeLock().lock();
+                //synchronized (C.syncApPlanSense) {
+                    ag.buf(getUserAgArch().perceive()); 
+                //}
+                C.lockApPlanSense.writeLock().unlock();
                 getUserAgArch().checkMail();
             }
             nrcslbr++; // counting number of cycles since last belief revision

@@ -52,7 +52,6 @@ public final class PredicateIndicator implements Comparable<PredicateIndicator>,
         return hash;
     }
 
-    @Override
     public int compareTo(PredicateIndicator pi) {
         int c = this.ns.compareTo(pi.ns);
         if (c != 0) return c;

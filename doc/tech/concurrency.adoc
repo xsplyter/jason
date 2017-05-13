@@ -404,6 +404,8 @@ bob [cycles = 10];
 
 . Maicon R. Zatelli, Alessandro Ricci, Jomi F. Hübner. *Evaluating Different Concurrency Configurations for Executing Multi-Agent Systems*. In: 3rd International Workshop on Engineering Multi-agent Systems (EMAS@AAMAS), 2015, Istanbul. Engineering Multi-agent Systems, 2015. v. 9318. p. 212-230. DOI: http://dx.doi.org/10.1007/978-3-319-26184-3_12[10.1007/978-3-319-26184-3_12]
 
+. Maicon R. Zatelli, Jomi F. Hübner, Alessandro Ricci, Rafael H. Bordini. *Conflicting Goals in Agent-oriented Programming*. In: 6th International Workshop on Programming Based on Actors, Agents, and Decentralized Control (AGERE!@SPLASH), 2016, Amsterdam. p. 21-30. DOI: http://dx.doi.org/10.1145/3001886.3001889[10.1145/3001886.3001889]
+
 . Pascual Pérez-Carro, Francisco Grimaldo, Miguel Lozano, Juan M. Orduña. *Characterization of the Jason Multiagent Platform on Multicore Processors*.  Scientific Programming 22(1). p 21-35, 2014. DOI: http://dx.doi.org/10.3233/SPR-130375[10.3233/SPR-130375]
 
 . Victor Fernández-Bauset, Francisco Grimaldo, Miguel Lozano, Juan M. Orduña. *Tuning Java to Run Interactive Multiagent Simulations over Jason*. In: LI, J. (Ed.). Australasian Conference on Artificial Intelligence, 2010. (Lecture Notes in Computer Science, v. 6464), p. 354–363. DOI: http://dx.doi.org/10.1007/978-3-642-17432-2_36[10.1007/978-3-642-17432-2_36]

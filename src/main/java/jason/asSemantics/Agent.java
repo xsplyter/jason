@@ -191,6 +191,9 @@ public class Agent {
             loadKqmlPlans();
 
             setASLSrc(asSrc);
+            
+            //Convert triggers and identifiers of conflicts to plan names, the plans added in the future do it by themselves, this function is more optimized
+            getPL().transformConflicts();
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error creating customised Agent class!", e);
             throw new JasonException("Error creating customised Agent class! - " + e);
@@ -631,10 +634,20 @@ public class Agent {
         // make sure the selected Event is removed from 'events' queue
         return events.poll();
     }
-
+    
     public Option selectOption(List<Option> options) {
+    	// CONFLICT: select the first non-conflicting plan
         if (options != null && !options.isEmpty()) {
-            return options.remove(0);
+        	
+        	//Try to get the first non-conflicting
+        	for (Option o : options) {
+        		if (ts.conflict(ts.getC().SE.intention, o.getPlan()) == null) {
+        			return o;
+        		}
+        	}
+        	
+        	//If all conflict, then get the first one
+        	return options.remove(0);
         } else {
             return null;
         }

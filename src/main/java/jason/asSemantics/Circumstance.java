@@ -3,17 +3,22 @@ package jason.asSemantics;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import jason.asSyntax.Literal;
+import jason.asSyntax.Plan;
 import jason.asSyntax.Trigger;
 import jason.asSyntax.Trigger.TEOperator;
 import jason.asSyntax.Trigger.TEType;
@@ -42,12 +47,16 @@ public class Circumstance implements Serializable {
 
     private Map<String, Intention>     PI; // pending intentions, intentions suspended by any other reason
     private Map<String, Event>         PE; // pending events, events suspended by .suspend
-
+    
     private Queue<CircumstanceListener> listeners = new ConcurrentLinkedQueue<CircumstanceListener>();
 
+    /** A map from labels to instances of plans (IM) */
+    protected Map<String,Set<IntendedMeans>> planInstances = new ConcurrentHashMap<String,Set<IntendedMeans>>();
+    
     private TransitionSystem ts = null;
 
     public Object syncApPlanSense = new Object();
+    public ReadWriteLock lockApPlanSense = new ReentrantReadWriteLock();
 
     public Circumstance() {
         create();
@@ -68,6 +77,42 @@ public class Circumstance implements Serializable {
         PI = new ConcurrentHashMap<String, Intention>();
         PE = new ConcurrentHashMap<String, Event>();
         FA = new ArrayList<ActionExec>();
+    }
+    
+    //It is not called
+    public void createInstancesPlan() {
+        for (Plan p : ts.getAg().getPL().getPlans()) {
+    		planInstances.put(p.getLabel().getFunctor(), new HashSet<IntendedMeans>());
+    	}
+    }
+    
+    public Set<IntendedMeans> getInstancesPlan(String planLabel) {
+    	return planInstances.get(planLabel);
+    }
+    
+    /**
+     * Put intention i in the instances of a plan
+     * @param planLabel
+     * @param i
+     */
+    public void addInstancePlan(String planLabel, IntendedMeans im) {
+    	Set<IntendedMeans> instances = planInstances.get(planLabel);
+    	if (instances == null) {
+    		instances = new HashSet<IntendedMeans>();
+    		planInstances.put(planLabel, instances);
+    	}
+    	instances.add(im);
+    }
+    
+    /**
+     * Remove the instance of i from all plan instances
+     * @param i
+     */
+    public void removeInstancePlan(String planLabel, IntendedMeans im) {
+    	Set<IntendedMeans> instances = planInstances.get(planLabel);
+    	if (instances != null) {
+    		instances.remove(im);
+    	}
     }
 
     /** set null for A, RP, AP, SE, SO, and SI */
@@ -334,6 +379,7 @@ public class Circumstance implements Serializable {
     /** removes and produces events to signal that the intention was dropped */
     public boolean dropIntention(Intention i) {
         if (removeIntention(i)) {
+        	ts.terminateIntention(i);
             if (listeners != null)
                 for (CircumstanceListener el : listeners)
                     el.intentionDropped(i);
