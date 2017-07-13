@@ -379,7 +379,7 @@ public class Circumstance implements Serializable {
     /** removes and produces events to signal that the intention was dropped */
     public boolean dropIntention(Intention i) {
         if (removeIntention(i)) {
-            ts.terminateIntention(i);
+            ts.terminateIntention(i); // TODO: revise, when used with succeed_goal, remove this, and see TODO in IntentionDropGoal...
             if (listeners != null)
                 for (CircumstanceListener el : listeners)
                     el.intentionDropped(i);

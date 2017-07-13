@@ -154,6 +154,7 @@ public class Intention implements Serializable, Comparable<Intention>, Iterable<
                 pop();
             }
             pop(); // remove im
+            // TODO: place terminateIM here?
             return true;
         }
         return false;

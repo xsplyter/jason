@@ -263,7 +263,7 @@ public class StdLibTest extends TestCase {
         assertEquals(intention1.size(), 4);
         Trigger g = ASSyntax.parseTrigger("+!g1");
         assertTrue(intention1.dropGoal(g, new Unifier()));
-        assertEquals(intention1.size(), 1);
+        assertEquals(1, intention1.size());
     }
 
     public void testDropGoal2() throws Exception {
@@ -284,7 +284,7 @@ public class StdLibTest extends TestCase {
         TransitionSystem ts = new TransitionSystem(ag, null, null, null);
         ts.getC().addIntention(intention1);
         new fail_goal().drop(ts, Literal.parseLiteral("g2"), new Unifier());
-        assertEquals(0, intention1.size());
+        assertEquals(2, intention1.size());
         assertEquals(1, ts.getC().getEvents().size());
     }
 
