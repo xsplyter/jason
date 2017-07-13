@@ -46,13 +46,13 @@ public class StdLibTest extends TestCase {
         super.setUp();
 
         intention1 = new Intention();
-        Plan p = Plan.parse("+!g0 : true <- !g1; !g4.");
+        Plan p = Plan.parse("@lg0 +!g0 : true <- !g1; !g4.");
         intention1.push(new IntendedMeans(new Option(p,new Unifier()), null));
 
-        p = Plan.parse("+!g1 : true <- !g2.");
+        p = Plan.parse("@lg1 +!g1 : true <- !g2.");
         intention1.push(new IntendedMeans(new Option(p,new Unifier()), null));
 
-        p = Plan.parse("+!g2 : true <- !g4; f;g.");
+        p = Plan.parse("@lg2 +!g2 : true <- !g4; f;g.");
         intention1.push(new IntendedMeans(new Option(p,new Unifier()), null));
 
         p4 = Plan.parse("+!g4 : true <- h.");
@@ -284,8 +284,8 @@ public class StdLibTest extends TestCase {
         TransitionSystem ts = new TransitionSystem(ag, null, null, null);
         ts.getC().addIntention(intention1);
         new fail_goal().drop(ts, Literal.parseLiteral("g2"), new Unifier());
-        assertEquals(intention1.size(),2);
-        assertEquals(ts.getC().getEvents().size(),1);
+        assertEquals(0, intention1.size());
+        assertEquals(1, ts.getC().getEvents().size());
     }
 
     @SuppressWarnings("unchecked")
