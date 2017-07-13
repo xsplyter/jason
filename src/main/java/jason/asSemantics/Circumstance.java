@@ -82,12 +82,12 @@ public class Circumstance implements Serializable {
     //It is not called
     public void createInstancesPlan() {
         for (Plan p : ts.getAg().getPL().getPlans()) {
-    		planInstances.put(p.getLabel().getFunctor(), new HashSet<IntendedMeans>());
-    	}
+            planInstances.put(p.getLabel().getFunctor(), new HashSet<IntendedMeans>());
+        }
     }
     
     public Set<IntendedMeans> getInstancesPlan(String planLabel) {
-    	return planInstances.get(planLabel);
+        return planInstances.get(planLabel);
     }
     
     /**
@@ -96,12 +96,12 @@ public class Circumstance implements Serializable {
      * @param i
      */
     public void addInstancePlan(String planLabel, IntendedMeans im) {
-    	Set<IntendedMeans> instances = planInstances.get(planLabel);
-    	if (instances == null) {
-    		instances = new HashSet<IntendedMeans>();
-    		planInstances.put(planLabel, instances);
-    	}
-    	instances.add(im);
+        Set<IntendedMeans> instances = planInstances.get(planLabel);
+        if (instances == null) {
+            instances = new HashSet<IntendedMeans>();
+            planInstances.put(planLabel, instances);
+        }
+        instances.add(im);
     }
     
     /**
@@ -109,10 +109,10 @@ public class Circumstance implements Serializable {
      * @param i
      */
     public void removeInstancePlan(String planLabel, IntendedMeans im) {
-    	Set<IntendedMeans> instances = planInstances.get(planLabel);
-    	if (instances != null) {
-    		instances.remove(im);
-    	}
+        Set<IntendedMeans> instances = planInstances.get(planLabel);
+        if (instances != null) {
+            instances.remove(im);
+        }
     }
 
     /** set null for A, RP, AP, SE, SO, and SI */
@@ -379,7 +379,7 @@ public class Circumstance implements Serializable {
     /** removes and produces events to signal that the intention was dropped */
     public boolean dropIntention(Intention i) {
         if (removeIntention(i)) {
-        	ts.terminateIntention(i);
+            ts.terminateIntention(i);
             if (listeners != null)
                 for (CircumstanceListener el : listeners)
                     el.intentionDropped(i);

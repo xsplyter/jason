@@ -46,7 +46,7 @@ public class Plan extends Structure implements Cloneable, Serializable {
     private boolean     isTerm = false; // it is true when the plan body is used as a term instead of an element of a plan
 
     //A set to store the conflicting plans related to the plan
-    private Set<String> conflictingPlans = new HashSet<String>();
+    private Set<String> conflictingPlans = null;
     
     //A set to store the conflicts (labels, triggers, identifiers) related to the plan
     private Set<Conflict> conflicts = new HashSet<Conflict>();
@@ -118,17 +118,17 @@ public class Plan extends Structure implements Cloneable, Serializable {
             for (Term t: label.getAnnots()) {
                 if (t.equals(TAtomic)) {
                     //isAtomic = true; //TODO atomic as processConflictSet
-                	//System.out.println("%%%%%%%%% Added atomic plan in conflict set of " + label.getFunctor());
+                    //System.out.println("%%%%%%%%% Added atomic plan in conflict set of " + label.getFunctor());
                     this.conflicts.add(new Conflict("_", ConflictType.ATOMIC));
                 } if (t.equals(TBreakPoint))
                     hasBreakpoint = true;
                 if (t.equals(TAllUnifs))
                     isAllUnifs = true;
                 if (t.isPred()) {
-                	Pred pred = (Pred) t;
-                	if (pred.getFunctor().equals(FConflict)) {
-                		processConflictSet(pred);
-                	}
+                    Pred pred = (Pred) t;
+                    if (pred.getFunctor().equals(FConflict)) {
+                        processConflictSet(pred);
+                    }
                 }
                 // if change here, also change the clone()!
             }
@@ -142,26 +142,26 @@ public class Plan extends Structure implements Cloneable, Serializable {
      * @return
      */
     private Conflict toConflict (Term termConflict) {
-		 Conflict c = null;
-		 if (termConflict.isAtom()) { //It's an identifier of a conflict
-			 c = new Conflict(((Atom)termConflict).getFunctor(), ConflictType.CONFLICT_IDENTIFIER);
-		 } else if (termConflict.isString()) { //It can be any type of conflict, depends on how it starts
-			 String s = ((StringTerm) termConflict).getString();
-			 if (s.charAt(0) == '@') {
-				 c = new Conflict(s.substring(1, s.length()), ConflictType.PLAN_NAME);
-			 } else if (s.charAt(0) == '+' || s.charAt(0) == '-') {
-				 c = new Conflict(s, ConflictType.PLAN_TRIGGER);
-				 
-				 Trigger t = Trigger.parseTrigger(s);
-				 //System.out.println(s + "#" + t.toString());
-			 } else {
-				 c = new Conflict(s, ConflictType.CONFLICT_IDENTIFIER);
-			 }
-		 } else if (termConflict.isUnnamedVar()) {
-			 c = new Conflict("_", ConflictType.ATOMIC);
-			 //System.out.println("%%%%%%%%%## _ Added atomic plan in conflict set of " + label.getFunctor());
-		 }
-		 return c;
+         Conflict c = null;
+         if (termConflict.isAtom()) { //It's an identifier of a conflict
+             c = new Conflict(((Atom)termConflict).getFunctor(), ConflictType.CONFLICT_IDENTIFIER);
+         } else if (termConflict.isString()) { //It can be any type of conflict, depends on how it starts
+             String s = ((StringTerm) termConflict).getString();
+             if (s.charAt(0) == '@') {
+                 c = new Conflict(s.substring(1, s.length()), ConflictType.PLAN_NAME);
+             } else if (s.charAt(0) == '+' || s.charAt(0) == '-') {
+                 c = new Conflict(s, ConflictType.PLAN_TRIGGER);
+                 
+                 Trigger t = Trigger.parseTrigger(s);
+                 //System.out.println(s + "#" + t.toString());
+             } else {
+                 c = new Conflict(s, ConflictType.CONFLICT_IDENTIFIER);
+             }
+         } else if (termConflict.isUnnamedVar()) {
+             c = new Conflict("_", ConflictType.ATOMIC);
+             //System.out.println("%%%%%%%%%## _ Added atomic plan in conflict set of " + label.getFunctor());
+         }
+         return c;
     }
     
     /**
@@ -169,40 +169,45 @@ public class Plan extends Structure implements Cloneable, Serializable {
      * @param conflicts
      */
     private void processConflictSet(Pred conflicts) {
-    	if (conflicts.getArity() > 0) {
-    		if (conflicts.getTerm(0).isList()) {
-    			 for (Term termConflict: (ListTerm) conflicts.getTerm(0)) {
-    				 this.conflicts.add(toConflict(termConflict));
-    			 }
-    		} else {
-    			Term termConflict = conflicts.getTerm(0);
-    			this.conflicts.add(toConflict(termConflict));
-    		}
-    	}
+        if (conflicts.getArity() > 0) {
+            if (conflicts.getTerm(0).isList()) {
+                 for (Term termConflict: (ListTerm) conflicts.getTerm(0)) {
+                     this.conflicts.add(toConflict(termConflict));
+                 }
+            } else {
+                Term termConflict = conflicts.getTerm(0);
+                this.conflicts.add(toConflict(termConflict));
+            }
+        }
     }
     
     public void addConflictingPlan(String label) {
-    	conflictingPlans.add(label);
+    	if (conflictingPlans == null)
+    		conflictingPlans = new HashSet<String>();
+        conflictingPlans.add(label);
     }
     
     public void removeConflictingPlan(String label) {
-    	conflictingPlans.remove(label);
+        conflictingPlans.remove(label);
     }
     
+    public boolean hasConflictingPlans() {
+    	return conflictingPlans != null && !conflictingPlans.isEmpty();
+    }
     public Set<String> getConflictingPlans() {
-    	return conflictingPlans;
+        return conflictingPlans;
     }
     
     public boolean containsConflict(Conflict c) {
-    	return conflicts.contains(c);
+        return conflicts.contains(c);
     }
     
     public Set<Conflict> getConflicts() {
-    	return conflicts;
+        return conflicts;
     }
     
     public boolean conflictsWith(String label) {
-    	return conflictingPlans.contains(label);
+        return conflictingPlans.contains(label);
     }
     
     public Pred getLabel() {
@@ -295,7 +300,7 @@ public class Plan extends Structure implements Cloneable, Serializable {
         }
         
         for (Conflict c : conflicts) {
-        	p.conflicts.add(c.clone());
+            p.conflicts.add(c.clone());
         }
 
         p.tevent = tevent.capply(u);
@@ -318,7 +323,7 @@ public class Plan extends Structure implements Cloneable, Serializable {
         }
         
         for (Conflict c : conflicts) {
-        	p.conflicts.add(c.clone());
+            p.conflicts.add(c.clone());
         }
 
         p.tevent = tevent.clone();
@@ -342,7 +347,7 @@ public class Plan extends Structure implements Cloneable, Serializable {
         }
 
         for (Conflict c : conflicts) {
-        	p.conflicts.add(c.clone());
+            p.conflicts.add(c.clone());
         }
         
         p.tevent  = tevent.clone();

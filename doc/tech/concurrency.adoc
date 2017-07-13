@@ -132,14 +132,14 @@ First of all, it is important to say that the conflict relation is symmetric, wh
 
 ==== Conflict events
 
-A plan can conflict with all other plans that handle the same event. The conflict is specified by informing with which triggers a plan is conflicting. 
+A plan can conflict with all other plans that handle the same event. The conflict is specified by informing with which triggers a plan is conflicting.
 
 ----
 @alabel[conflict("+!g1(_)")] // this plan conflicts with all plans that handle the adoption of the goal !g1(_)
 +!update(X)
    <- -vl(T);   // gets the current value of belief vl
       +vl(T+X). // updates its value
-      
+
 +!g1(T) ...
 ----
 
@@ -150,7 +150,7 @@ If a plan conflict with plans that have different triggers, the list of all trig
 +!update(X)
    <- -vl(T);   // gets the current value of belief vl
       +vl(T+X). // updates its value
-      
+
 +!g1(T) ...
 +!g2 ...
 ----
@@ -179,7 +179,7 @@ The keyword *self* can be used to specify a conflict of a plan with itself. It m
 
 ==== Conflict _
 
-The keyword *_* can be used to specify a conflict of a plan with all other plans (this is the same as specifying a plan as atomic).
+The unnamed variable *_* can be used to specify a conflict of a plan with all other plans (this is the same as specifying a plan as *atomic*).
 
 ----
 @alabel[conflict(_)] // this plan conflicts with all other plans, and once this plan is in execution, no other plans will be in execution concurrently with it

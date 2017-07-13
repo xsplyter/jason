@@ -636,18 +636,18 @@ public class Agent {
     }
     
     public Option selectOption(List<Option> options) {
-    	// CONFLICT: select the first non-conflicting plan
+        // CONFLICT: select the first non-conflicting plan
         if (options != null && !options.isEmpty()) {
-        	
-        	//Try to get the first non-conflicting
-        	for (Option o : options) {
-        		if (ts.conflict(ts.getC().SE.intention, o.getPlan()) == null) {
-        			return o;
-        		}
-        	}
-        	
-        	//If all conflict, then get the first one
-        	return options.remove(0);
+            
+            //Try to get the first non-conflicting
+            for (Option o : options) {
+                if (ts.conflict(ts.getC().SE.intention, o.getPlan()) == null) {
+                    return o;
+                }
+            }
+            
+            //If all conflict, then get the first one
+            return options.remove(0);
         } else {
             return null;
         }

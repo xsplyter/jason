@@ -53,7 +53,7 @@ public class Intention implements Serializable, Comparable<Intention>, Iterable<
     }
 
     public void push(IntendedMeans im) {
-    	im.setIntention(this);
+        im.setIntention(this);
         intendedMeans.push(im);
         if (im.isAtomic())
             atomicCount++;
@@ -107,7 +107,7 @@ public class Intention implements Serializable, Comparable<Intention>, Iterable<
     public void setSuspended(boolean b) {
         isSuspended = b;
         if (!isSuspended) {
-        	setSuspendedBy(null);
+            setSuspendedBy(null);
         }
     }
     
@@ -116,7 +116,7 @@ public class Intention implements Serializable, Comparable<Intention>, Iterable<
     }    
     
     public IntendedMeans getSuspendedBy() {
-    	return suspendedBy;
+        return suspendedBy;
     }
 
     public boolean isSuspended() {

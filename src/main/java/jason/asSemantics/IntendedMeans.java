@@ -43,23 +43,23 @@ public class IntendedMeans implements Serializable {
     }
     
     public void setIntention(Intention i) {
-    	this.i = i;
+        this.i = i;
     }
     
     public Intention getIntention() {
-    	return i;
+        return i;
     }
     
     public void addSI(Intention i) {
-    	si.offer(i);
+        si.offer(i);
     }
     
     public void removeSI(Intention i) {
-    	si.remove(i);
+        si.remove(i);
     }
     
     public Queue<Intention> getSI() {
-    	return si;
+        return si;
     }
 
     // used by clone
